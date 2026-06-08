@@ -6,6 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'ticket_model.dart';
+import 'water_map_screen.dart';
 import 'main.dart'; // Assuming flutterLocalNotificationsPlugin is global here
 
 class TicketingScreen extends StatelessWidget {
@@ -46,11 +47,16 @@ class TicketingScreen extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: colorPrimary,
-        onPressed: () => _showTicketDialog(context),
-        label: Text("NEW INCIDENT", style: GoogleFonts.montserrat(fontWeight: FontWeight.bold, color: Colors.black)),
-        icon: const Icon(Icons.add_alert_rounded, color: Colors.black),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: const Color(0xFF22D3EE),
+        onPressed: () {
+          // 1. Existing Dialog logic
+          _showTicketDialog(context);
+          
+          // 2. Navigation to the Map screen
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const WaterMapScreen()));
+        },
+        child: const Icon(Icons.map, color: Colors.black),
       ),
     );
   }
