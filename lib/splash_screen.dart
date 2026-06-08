@@ -1,7 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'login_page.dart'; // Ensure this matches your login page file name
+import 'network_service.dart';
+import 'login_page.dart';
+import 'main.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,18 +12,50 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  // Added a local state to track if we are waiting for connection
+  bool _isWaitingForConnection = false;
+
   @override
   void initState() {
     super.initState();
-    // 12-second timer to navigate
-    Timer(const Duration(seconds: 12), () {
+    _handleNavigation();
+  }
+
+  void _handleNavigation() async {
+    await Future.delayed(const Duration(seconds: 3));
+
+    bool connected = await NetworkService.isConnected();
+
+    if (connected) {
+      _navigateToLogin();
+    } else {
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
+        setState(() => _isWaitingForConnection = true);
       }
-    });
+      isConnectedNotifier.addListener(_onConnectionChanged);
+    }
+  }
+
+  void _onConnectionChanged() {
+    if (isConnectedNotifier.value) {
+      isConnectedNotifier.removeListener(_onConnectionChanged);
+      _navigateToLogin();
+    }
+  }
+
+  void _navigateToLogin() {
+    if (mounted) {
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen())
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    isConnectedNotifier.removeListener(_onConnectionChanged);
+    super.dispose();
   }
 
   @override
@@ -33,7 +66,7 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // ASYMMETRIC FRAME
+            // --- KEEPING EXISTING LOGO UI ---
             Container(
               width: 220,
               height: 220,
@@ -49,15 +82,11 @@ class _SplashScreenState extends State<SplashScreen> {
               child: Image.asset(
                 "assets/images/logo.png",
                 fit: BoxFit.contain,
-                // Error-handling: provides a fallback if image is missing
                 errorBuilder: (context, error, stackTrace) =>
                 const Icon(Icons.water_drop, size: 100, color: Colors.white),
               ),
             ),
-
             const SizedBox(height: 60),
-
-            // EDITORIAL TYPOGRAPHY
             Text(
               "AQUAOPS",
               style: GoogleFonts.tenorSans(
@@ -67,19 +96,9 @@ class _SplashScreenState extends State<SplashScreen> {
                 fontWeight: FontWeight.w400,
               ),
             ),
-
             const SizedBox(height: 15),
-
-            // DIVIDER LINE
-            Container(
-              width: 100,
-              height: 1,
-              color: Colors.white.withValues(alpha: 0.3),
-            ),
-
+            Container(width: 100, height: 1, color: Colors.white.withValues(alpha: 0.3)),
             const SizedBox(height: 15),
-
-            // SUBTITLE
             Text(
               "FLUID INTELLIGENCE",
               style: GoogleFonts.tenorSans(
@@ -87,6 +106,39 @@ class _SplashScreenState extends State<SplashScreen> {
                 letterSpacing: 8,
                 color: const Color(0xFF777777),
               ),
+            ),
+            const SizedBox(height: 40),
+
+            // --- ENHANCED DYNAMIC STATUS UI ---
+            ValueListenableBuilder<bool>(
+              valueListenable: isConnectedNotifier,
+              builder: (context, isConnected, child) {
+                return AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 500),
+                  child: !isConnected
+                      ? Column(
+                    key: const ValueKey('offline'),
+                    children: [
+                      const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white24),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        "CONNECTION LOST. RETRYING...",
+                        style: GoogleFonts.tenorSans(
+                          fontSize: 10,
+                          letterSpacing: 3,
+                          color: Colors.orangeAccent.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  )
+                      : const CircularProgressIndicator(
+                    key: ValueKey('online'),
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white24),
+                  ),
+                );
+              },
             ),
           ],
         ),
