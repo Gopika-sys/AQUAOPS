@@ -9,6 +9,8 @@ import 'sensor_repository.dart';
 import 'dashboard_provider.dart';
 import 'digital_twin_screen.dart';
 import 'digital_twin_provider.dart';
+import 'water_map_screen.dart';
+import 'ticketing_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -52,13 +54,13 @@ class DashboardScreen extends StatelessWidget {
                         // Now correctly listening to the simulated DashboardProvider
                         FadeInUp(
                           child: Consumer<DashboardProvider>(
-                            builder: (context, data, _) => _buildHeroCard(data),
+                            builder: (context, data, _) => _buildHeroCard(context, data),
                           ),
                         ),
                         const SizedBox(height: 20),
                         _buildStatusRow(),
                         const SizedBox(height: 20),
-                        _buildIncidentRow(),
+                        _buildIncidentRow(context),
                         const SizedBox(height: 20),
                         Consumer<DashboardProvider>(
                           builder: (context, data, _) => _buildDualStats(data),
@@ -75,7 +77,7 @@ class DashboardScreen extends StatelessWidget {
           );
         },
       ),
-      bottomNavigationBar: _buildLuxuryBottomNav(),
+      bottomNavigationBar: _buildLuxuryBottomNav(context),
     );
   }
 
@@ -113,18 +115,21 @@ class DashboardScreen extends StatelessWidget {
     ],
   );
 
-  Widget _buildHeroCard(DashboardProvider data) => _glassContainer(
-    padding: const EdgeInsets.all(25),
-    child: Row(children: [
-      const Icon(Icons.speed_rounded, color: Color(0xFF22D3EE), size: 40),
-      const SizedBox(width: 20),
-      Expanded(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text("CAMPUS WATER HEALTH", style: GoogleFonts.montserrat(color: Colors.white54, fontSize: 10, letterSpacing: 3)),
-          Text("${data.healthScore.toStringAsFixed(1)} / 10.0", style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
-        ]),
-      )
-    ]),
+  Widget _buildHeroCard(BuildContext context, DashboardProvider data) => GestureDetector(
+    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DigitalTwinScreen())),
+    child: _glassContainer(
+      padding: const EdgeInsets.all(25),
+      child: Row(children: [
+        const Icon(Icons.speed_rounded, color: Color(0xFF22D3EE), size: 40),
+        const SizedBox(width: 20),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text("CAMPUS WATER HEALTH", style: GoogleFonts.montserrat(color: Colors.white54, fontSize: 10, letterSpacing: 3)),
+            Text("${data.healthScore.toStringAsFixed(1)} / 10.0", style: GoogleFonts.poppins(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+          ]),
+        )
+      ]),
+    ),
   );
 
   Widget _buildStatusRow() => Consumer<DigitalTwinProvider>(
@@ -140,11 +145,33 @@ class DashboardScreen extends StatelessWidget {
     ),
   );
 
-  Widget _buildIncidentRow() => Row(
+  Widget _buildIncidentRow(BuildContext context) => Row(
     children: [
-      Expanded(child: _glassContainer(child: const ListTile(contentPadding: EdgeInsets.symmetric(horizontal: 10), leading: Icon(Icons.notifications_active, color: Colors.redAccent), title: Text("Active", style: TextStyle(color: Colors.white, fontSize: 12))))),
+      Expanded(
+        child: GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TicketingScreen())),
+          child: _glassContainer(
+            child: const ListTile(
+              contentPadding: EdgeInsets.symmetric(horizontal: 10),
+              leading: Icon(Icons.notifications_active, color: Colors.redAccent),
+              title: Text("Active", style: TextStyle(color: Colors.white, fontSize: 12)),
+            ),
+          ),
+        ),
+      ),
       const SizedBox(width: 15),
-      Expanded(child: _glassContainer(child: const ListTile(contentPadding: EdgeInsets.symmetric(horizontal: 10), leading: Icon(Icons.info_outline, color: Colors.amberAccent), title: Text("Ongoing", style: TextStyle(color: Colors.white, fontSize: 12))))),
+      Expanded(
+        child: GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TicketingScreen())),
+          child: _glassContainer(
+            child: const ListTile(
+              contentPadding: EdgeInsets.symmetric(horizontal: 10),
+              leading: Icon(Icons.info_outline, color: Colors.amberAccent),
+              title: Text("Ongoing", style: TextStyle(color: Colors.white, fontSize: 12)),
+            ),
+          ),
+        ),
+      ),
     ],
   );
 
@@ -168,15 +195,27 @@ class DashboardScreen extends StatelessWidget {
     ),
   );
 
-  Widget _buildLuxuryBottomNav() => Container(
+  Widget _buildLuxuryBottomNav(BuildContext context) => Container(
     margin: const EdgeInsets.fromLTRB(30, 0, 30, 30),
     padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 30),
-    decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.7), borderRadius: BorderRadius.circular(40), border: Border.all(color: Colors.white.withValues(alpha: 0.1))),
-    child: const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-      Icon(Icons.dashboard_rounded, color: Color(0xFF22D3EE)),
-      Icon(Icons.map_outlined, color: Colors.white30),
-      Icon(Icons.insights_rounded, color: Colors.white30),
-      Icon(Icons.person_outline_rounded, color: Colors.white30),
-    ]),
+    decoration: BoxDecoration(
+      color: Colors.black.withValues(alpha: 0.7),
+      borderRadius: BorderRadius.circular(40),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _buildNavIcon(context, Icons.dashboard_rounded, true, null),
+        _buildNavIcon(context, Icons.map_outlined, false, const WaterMapScreen()),
+        _buildNavIcon(context, Icons.insights_rounded, false, const DigitalTwinScreen()),
+        _buildNavIcon(context, Icons.confirmation_number_outlined, false, const TicketingScreen()),
+      ],
+    ),
+  );
+
+  Widget _buildNavIcon(BuildContext context, IconData icon, bool isActive, Widget? target) => GestureDetector(
+    onTap: target == null ? null : () => Navigator.push(context, MaterialPageRoute(builder: (_) => target)),
+    child: Icon(icon, color: isActive ? const Color(0xFF22D3EE) : Colors.white30),
   );
 }

@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'campus_water_infra_screen.dart';
 
 class WaterMapScreen extends StatefulWidget {
   const WaterMapScreen({super.key});
@@ -236,6 +237,9 @@ class _WaterMapScreenState extends State<WaterMapScreen> {
     {"featureType":"water","elementType":"geometry","stylers":[{"color":"#0e1626"}]}
   ]''';
 
+  void _updateSource(String val) => setState(() => _selectedSource = val);
+  void _updateDestination(String val) => setState(() => _selectedDestination = val);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -260,22 +264,36 @@ class _WaterMapScreenState extends State<WaterMapScreen> {
         color: const Color(0xFF0B1015),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         panel: _buildBottomPanel(),
-        body: GoogleMap(
-          initialCameraPosition: const CameraPosition(target: _collegeCenter, zoom: 18),
-          markers: _markers,
-          polylines: _polylines,
-          myLocationEnabled: true,
-          myLocationButtonEnabled: true,
-          mapType: MapType.hybrid, // Satellite view with labels for maximum visibility
-          onMapCreated: (controller) {
-            _mapController = controller;
-          },
-        ),
+          // Wrap GoogleMap in RepaintBoundary to isolate painting from UI overlays
+          body: RepaintBoundary(
+            child: GoogleMap(
+              initialCameraPosition: const CameraPosition(target: _collegeCenter, zoom: 18),
+              markers: _markers,
+              polylines: _polylines,
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+              mapType: MapType.hybrid,
+              style: _mapStyle,
+              onMapCreated: (controller) {
+                _mapController = controller;
+              },
+            ),
+          ),
       ),
     );
   }
 
   Widget _buildBottomPanel() {
+    return const _PanelContent();
+  }
+}
+
+class _PanelContent extends StatelessWidget {
+  const _PanelContent();
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.findAncestorStateOfType<_WaterMapScreenState>()!;
     return Padding(
       padding: const EdgeInsets.all(24),
       child: SingleChildScrollView(
@@ -289,22 +307,20 @@ class _WaterMapScreenState extends State<WaterMapScreen> {
             
             const SizedBox(height: 25),
             
-            // Source Dropdown
-            _buildRouteDropdown(
+            _RouteDropdown(
               label: "START POINT",
-              value: _selectedSource,
-              items: ['My Location', ..._campusPoints.keys],
-              onChanged: (val) => setState(() => _selectedSource = val!),
+              value: state._selectedSource,
+              items: ['My Location', ...state._campusPoints.keys],
+              onChanged: (val) => state._updateSource(val!),
             ),
             
             const SizedBox(height: 15),
             
-            // Destination Dropdown
-            _buildRouteDropdown(
+            _RouteDropdown(
               label: "DESTINATION",
-              value: _selectedDestination,
-              items: _campusPoints.keys.toList(),
-              onChanged: (val) => setState(() => _selectedDestination = val!),
+              value: state._selectedDestination,
+              items: state._campusPoints.keys.toList(),
+              onChanged: (val) => state._updateDestination(val!),
             ),
 
             const SizedBox(height: 25),
@@ -317,27 +333,49 @@ class _WaterMapScreenState extends State<WaterMapScreen> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 elevation: 4,
               ),
-              onPressed: _getDirections,
+              onPressed: state._getDirections,
               icon: const Icon(Icons.directions_outlined, weight: 700),
               label: const Text("GENERATE PRECISE ROUTE", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+            ),
+            const SizedBox(height: 15),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF22D3EE),
+                foregroundColor: Colors.black,
+                minimumSize: const Size(double.infinity, 55),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CampusWaterInfraScreen())),
+              icon: const Icon(Icons.architecture),
+              label: const Text("OPEN INFRASTRUCTURE PRO VIEW", style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             
             const SizedBox(height: 25),
             const Text("LEGEND", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.5)),
             const SizedBox(height: 10),
-            _buildLegendGrid(),
+            const _LegendGrid(),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildRouteDropdown({
-    required String label,
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
+class _RouteDropdown extends StatelessWidget {
+  final String label;
+  final String value;
+  final List<String> items;
+  final ValueChanged<String?> onChanged;
+
+  const _RouteDropdown({
+    required this.label,
+    required this.value,
+    required this.items,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -370,9 +408,14 @@ class _WaterMapScreenState extends State<WaterMapScreen> {
       ],
     );
   }
+}
 
-  Widget _buildLegendGrid() {
-    final items = [
+class _LegendGrid extends StatelessWidget {
+  const _LegendGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    const items = [
       {"name": "Water / Utilities", "color": Colors.cyan},
       {"name": "Hostels", "color": Colors.blue},
       {"name": "Academic", "color": Colors.orange},

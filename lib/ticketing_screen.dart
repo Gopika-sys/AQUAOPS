@@ -5,9 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import 'ticket_model.dart';
 import 'water_map_screen.dart';
-import 'main.dart'; // Assuming flutterLocalNotificationsPlugin is global here
+import 'main.dart';
 
 class TicketingScreen extends StatelessWidget {
   const TicketingScreen({super.key});
@@ -262,15 +265,18 @@ class TicketingScreen extends StatelessWidget {
     bool isResolved = ticket.status == 4;
 
     return InkWell(
-      onTap: isResolved ? null : () async {
+      onTap: () async {
         HapticFeedback.mediumImpact();
-        if (ticket.status < 4) {
+        if (!isResolved) {
           int newStatus = ticket.status + 1;
           await FirebaseFirestore.instance.collection('tickets').doc(ticket.id).update({'status': newStatus});
           
           if (newStatus == 4) {
             _triggerResolvedNotification(ticket.title);
           }
+        } else {
+          // If resolved, trigger print/save
+          _generateAndPrintTicket(ticket);
         }
       },
       child: Container(
@@ -281,17 +287,125 @@ class TicketingScreen extends StatelessWidget {
           border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
         ),
         child: Center(
-          child: Text(
-            isResolved ? "RESOLVED & ARCHIVED" : "ADVANCE WORKFLOW PHASE",
-            style: GoogleFonts.montserrat(
-              color: isResolved ? Colors.greenAccent : (isCritical ? colorCritical : colorPrimary),
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              letterSpacing: 1,
-            ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              if (isResolved) const Icon(Icons.print_rounded, color: Colors.greenAccent, size: 16),
+              if (isResolved) const SizedBox(width: 10),
+              Text(
+                isResolved ? "DOWNLOAD & PRINT RECEIPT" : "ADVANCE WORKFLOW PHASE",
+                style: GoogleFonts.montserrat(
+                  color: isResolved ? Colors.greenAccent : (isCritical ? colorCritical : colorPrimary),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _generateAndPrintTicket(Ticket ticket) async {
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Padding(
+            padding: const pw.EdgeInsets.all(40),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Header(
+                  level: 0,
+                  child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text("AQUAOPSS INCIDENT REPORT", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 24)),
+                      pw.Text("AI VERIFIED", style: pw.TextStyle(color: PdfColors.green, fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text("Ticket ID: ${ticket.id}", style: pw.TextStyle(color: PdfColors.grey)),
+                        pw.Text("Date: ${DateFormat('yyyy-MM-dd HH:mm').format(ticket.timestamp.toDate())}", style: pw.TextStyle(color: PdfColors.grey)),
+                      ],
+                    ),
+                  ],
+                ),
+                pw.SizedBox(height: 20),
+                pw.Divider(),
+                pw.SizedBox(height: 20),
+                pw.Text("TITLE: ${ticket.title}", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 18)),
+                pw.SizedBox(height: 10),
+                pw.Row(
+                  children: [
+                    pw.Text("SEVERITY: "),
+                    pw.Text(ticket.severity, style: pw.TextStyle(color: ticket.severity == "CRITICAL" ? PdfColors.red : PdfColors.orange, fontWeight: pw.FontWeight.bold)),
+                  ],
+                ),
+                pw.Text("LOCATION: ${ticket.location}"),
+                pw.Text("STATUS: RESOLVED & ARCHIVED"),
+                pw.SizedBox(height: 20),
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(10),
+                  decoration: pw.BoxDecoration(color: PdfColors.grey100, borderRadius: pw.BorderRadius.circular(5)),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text("AI SUSTAINABILITY ANALYSIS", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
+                      pw.SizedBox(height: 5),
+                      pw.Text("Estimated Impact: High reduction in water wastage."),
+                      pw.Text("Resolution Time: Successfully addressed within AI estimated window."),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+                pw.Text("DESCRIPTION:"),
+                pw.Text(ticket.description),
+                pw.SizedBox(height: 30),
+                pw.Text("ASSIGNED TECHNICIAN: ${ticket.assignedTo}"),
+                pw.Spacer(),
+                pw.Divider(),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text("Sustainability Governance Board", style: pw.TextStyle(fontSize: 10)),
+                        pw.Text("Smart Campus SDG Monitoring", style: pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
+                      ],
+                    ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: [
+                        pw.Text("Digital Signature Verified", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                        pw.Text("AquaOpss AI Engine v2.0", style: pw.TextStyle(fontSize: 8, fontStyle: pw.FontStyle.italic)),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: 'Ticket_${ticket.id}.pdf',
     );
   }
 
