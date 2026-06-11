@@ -193,4 +193,3 @@ If you like this project:
 
 💧 AquaOps — Engineering Intelligence for Water Sustainability
 
-## 🏗️ Architecture Flow
