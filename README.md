@@ -1,6 +1,6 @@
 # 🌍 AquaOps — AI-Powered Water Sustainability Intelligence Platform
 
-![AquaOps Image]((https://i.pinimg.com/webp87/1200x/e3/3b/4b/e33b4be747d6f40c45932652a2242f1b.webp))
+![AquaOps Image](https://i.pinimg.com/webp87/1200x/e3/3b/4b/e33b4be747d6f40c45932652a2242f1b.webp)
 
 💧 Transforming Water Monitoring into Intelligent Decision Systems
 
