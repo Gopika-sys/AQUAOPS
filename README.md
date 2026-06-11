@@ -119,18 +119,19 @@ To improve engagement:
 
 ---
 
-## 🏗️ Architecture Flow
-User Input (Flutter App)
-↓
-Firebase Backend (Auth + DB + Storage)
-↓
-AI Engine Layer
-├── Hydra AI
-├── Neural Vision
-↓
-Insight Generation
-↓
-Dashboard + Recommendations
+## 🏗️ System Architecture Flow
+
+**User Input (Flutter App)**  
+↓  
+**Firebase Backend (Authentication + Database + Storage)**  
+↓  
+**AI Engine Layer**  
+&nbsp;&nbsp;&nbsp;&nbsp;├── Hydra AI  
+&nbsp;&nbsp;&nbsp;&nbsp;├── Neural Vision  
+↓  
+**Insight Generation**  
+↓  
+**Dashboard & Recommendations**
 
 ---
 
